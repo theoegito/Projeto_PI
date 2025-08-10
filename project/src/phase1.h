@@ -1,30 +1,26 @@
-// src/phase1.h
 #ifndef PHASE1_H
 #define PHASE1_H
-
 #include "raylib.h"
-#include "assets.h"
+#include <stdbool.h>
 #include "player.h"
-
-typedef struct {
-    Rectangle rect;
-    bool active;
-    float speed;
-} Obstacle;
+#include "assets.h"
 
 #define MAX_OBS 20
 
+typedef struct { Rectangle rect; float speed; bool active; } Obstacle;
+
 typedef struct {
+    Player *player;
     Obstacle obs[MAX_OBS];
     float spawnTimer;
-    int score;      // opcional
-    float elapsed;  // tempo decorrido na fase
-    bool finished;  // se completou 1 minuto
+    float timeLeft;     // counts down from 60s
+    bool finished;      // true if survived 60s
+    bool failed;        // true on collision
+    float groundY;
 } Phase1;
 
-void InitPhase1(Phase1 *p);
-void UpdatePhase1(Phase1 *p, Player *player, Assets *a, float dt);
-void DrawPhase1(Phase1 *p, Player *player, Assets *a);
-void ResetPhase1(Phase1 *p);
+void Phase1_Init(Phase1 *ph, Player *p, float groundY);
+void Phase1_Update(Phase1 *ph, float dt, Assets *a);
+void Phase1_Draw(Phase1 *ph, Assets *a);
 
 #endif // PHASE1_H

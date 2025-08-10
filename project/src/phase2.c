@@ -1,123 +1,99 @@
-// src/phase2.c
 #include "phase2.h"
-#include <stdio.h>
 
-// inicializa projéteis
-static void ResetProjectiles(Phase2 *p) {
-    for (int i=0;i<MAX_PROJECTILES;i++){
-        p->playerProjectiles[i].active = false;
+static void FirePlayer(Phase2 *ph, Assets *a){
+    for(int i=0;i<MAX_PBULLETS;i++) if(!ph->pbul[i].active){
+        ph->pbul[i].rect = (Rectangle){ph->player->rect.x + ph->player->rect.width-10, ph->player->rect.y+20, 16, 16};
+        ph->pbul[i].vel = (Vector2){600,0};
+        ph->pbul[i].active = true;
+        PlaySound(a->sShoot);
+        break;
     }
-    for (int i=0;i<MAX_BOSS_PROJECTILES;i++){
-        p->bossProjectiles[i].active = false;
+}
+
+static void FireBoss(Phase2 *ph){
+    for(int i=0;i<MAX_BOSS_BULLETS;i++) if(!ph->bbul[i].active){
+        ph->bbul[i].rect = (Rectangle){ph->boss.rect.x, ph->boss.rect.y+30, 16, 16};
+        ph->bbul[i].vel = (Vector2){-350,0};
+        ph->bbul[i].active = true;
+        break;
     }
 }
 
-void InitPhase2(Phase2 *p) {
-    p->rect = (Rectangle){ 700, 300, 200, 200 }; // posição do boss
-    p->hp = 100;
-    p->attackTimer = 0.0f;
-    ResetProjectiles(p);
+void Phase2_Init(Phase2 *ph, Player *p, float groundY){
+    ph->player = p;
+    p->hasWeapon = true;
+    p->lives = 3;
+    ph->boss.rect = (Rectangle){1024-200, groundY-120, 120, 120};
+    ph->boss.hp = 8;
+    ph->boss.shootTimer = 0;
+    for(int i=0;i<MAX_PBULLETS;i++){ ph->pbul[i].active=false; }
+    for(int i=0;i<MAX_BOSS_BULLETS;i++){ ph->bbul[i].active=false; }
+    ph->groundY = groundY;
+    ph->win = ph->lose = false;
 }
 
-void ResetPhase2(Phase2 *p) {
-    InitPhase2(p);
-}
+void Phase2_Update(Phase2 *ph, float dt, Assets *a){
+    if (ph->win || ph->lose) return;
 
-// atira projétil do jogador
-static void FirePlayerProjectile(Phase2 *p, Vector2 pos) {
-    for (int i=0;i<MAX_PROJECTILES;i++){
-        if (!p->playerProjectiles[i].active){
-            p->playerProjectiles[i].active = true;
-            p->playerProjectiles[i].pos = pos;
-            p->playerProjectiles[i].vel = (Vector2){ 600.0f, 0 };
-            p->playerProjectiles[i].rect = (Rectangle){ pos.x, pos.y, 10, 6 };
-            break;
+    // simple left-right move & jump
+    float speed = 240.0f;
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) ph->player->rect.x -= speed*dt;
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) ph->player->rect.x += speed*dt;
+
+    Player_UpdateRunner(ph->player, dt, ph->groundY, a->sJump);
+
+    if (IsKeyPressed(KEY_F) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        FirePlayer(ph, a);
+
+    // update player bullets
+    for(int i=0;i<MAX_PBULLETS;i++) if(ph->pbul[i].active){
+        ph->pbul[i].rect.x += ph->pbul[i].vel.x * dt;
+        if (ph->pbul[i].rect.x > 1024) ph->pbul[i].active=false;
+        if (CheckCollisionRecs(ph->pbul[i].rect, ph->boss.rect)){
+            ph->pbul[i].active=false;
+            ph->boss.hp--;
+            if (ph->boss.hp <= 0){ ph->win = true; PlaySound(a->sWin); }
+        }
+    }
+
+    // boss shooting
+    ph->boss.shootTimer -= dt;
+    if (ph->boss.shootTimer <= 0){
+        FireBoss(ph);
+        ph->boss.shootTimer = 1.2f;
+    }
+
+    // update boss bullets and check hit
+    for(int i=0;i<MAX_BOSS_BULLETS;i++) if(ph->bbul[i].active){
+        ph->bbul[i].rect.x += ph->bbul[i].vel.x * dt;
+        if (ph->bbul[i].rect.x + ph->bbul[i].rect.width < 0) ph->bbul[i].active=false;
+        if (CheckCollisionRecs(ph->bbul[i].rect, ph->player->rect)){
+            ph->bbul[i].active=false;
+            ph->player->lives--;
+            PlaySound(a->sLoseLife);
+            if (ph->player->lives <= 0){ ph->lose = true; PlaySound(a->sLoseGame); }
         }
     }
 }
 
-// boss atira um projétil em direção ao jogador (simples: projétil direto à esquerda)
-static void FireBossProjectile(Phase2 *p, Vector2 pos) {
-    for (int i=0;i<MAX_BOSS_PROJECTILES;i++){
-        if (!p->bossProjectiles[i].active){
-            p->bossProjectiles[i].active = true;
-            p->bossProjectiles[i].pos = pos;
-            p->bossProjectiles[i].vel = (Vector2){ -300.0f, 0 };
-            p->bossProjectiles[i].rect = (Rectangle){ pos.x, pos.y, 16, 16 };
-            break;
-        }
-    }
-}
+void Phase2_Draw(Phase2 *ph, Assets *a){
+    DrawTexture(a->texBackground,0,0,WHITE);
+    DrawRectangle(0,(int)ph->groundY,1024,4,DARKGRAY);
 
-void UpdatePhase2(Phase2 *p, Player *player, Assets *a, float dt) {
-    // Atualizar ataque do boss
-    p->attackTimer += dt;
-    if (p->attackTimer >= 1.2f) {
-        p->attackTimer = 0;
-        // dispara da frente do boss
-        Vector2 spawn = { p->rect.x - 20, p->rect.y + p->rect.height/2 };
-        FireBossProjectile(p, spawn);
-    }
+    // boss
+    DrawTexturePro(a->texBoss,(Rectangle){0,0,(float)a->texBoss.width,(float)a->texBoss.height},ph->boss.rect,(Vector2){0,0},0,WHITE);
 
-    // Atualiza projéteis do jogador
-    for (int i=0;i<MAX_PROJECTILES;i++){
-        if (!p->playerProjectiles[i].active) continue;
-        p->playerProjectiles[i].pos.x += p->playerProjectiles[i].vel.x * dt;
-        p->playerProjectiles[i].rect.x = p->playerProjectiles[i].pos.x;
-        if (p->playerProjectiles[i].pos.x > 1024) p->playerProjectiles[i].active = false;
-        // colisão com boss
-        if (CheckCollisionRecs(p->playerProjectiles[i].rect, p->rect)) {
-            p->playerProjectiles[i].active = false;
-            p->hp -= 10;
-            PlaySound(a->sfxShoot); // som de dano (use outro se preferir)
-            if (p->hp <= 0) {
-                // boss morto -> win tratado no main
-            }
-        }
-    }
+    // player (with weapon)
+    Texture2D t = a->texPlayerWithWeapon;
+    if (!ph->player->onGround) t = a->texJump;
+    DrawTexturePro(t,(Rectangle){0,0,(float)t.width,(float)t.height},ph->player->rect,(Vector2){0,0},0,WHITE);
 
-    // Atualiza projéteis do boss
-    for (int i=0;i<MAX_BOSS_PROJECTILES;i++){
-        if (!p->bossProjectiles[i].active) continue;
-        p->bossProjectiles[i].pos.x += p->bossProjectiles[i].vel.x * dt;
-        p->bossProjectiles[i].rect.x = p->bossProjectiles[i].pos.x;
-        // colisão com player
-        if (CheckCollisionRecs(p->bossProjectiles[i].rect, PlayerGetBounds(player))) {
-            p->bossProjectiles[i].active = false;
-            player->lives -= 1;
-            PlaySound(a->sfxLoseLife);
-            if (player->lives <= 0) {
-                // player perdeu todas as vidas -> tratado no main
-            }
-        }
-        if (p->bossProjectiles[i].pos.x + p->bossProjectiles[i].rect.width < 0) p->bossProjectiles[i].active = false;
-    }
+    // bullets
+    for(int i=0;i<MAX_PBULLETS;i++) if(ph->pbul[i].active)
+        DrawTexturePro(a->texBullet,(Rectangle){0,0,(float)a->texBullet.width,(float)a->texBullet.height},ph->pbul[i].rect,(Vector2){0,0},0,WHITE);
+    for(int i=0;i<MAX_BOSS_BULLETS;i++) if(ph->bbul[i].active)
+        DrawTexturePro(a->texBullet,(Rectangle){0,0,(float)a->texBullet.width,(float)a->texBullet.height},ph->bbul[i].rect,(Vector2){0,0},0,WHITE);
 
-    // disparo do jogador (input): tecla F para atirar
-    if ((IsKeyPressed(KEY_F) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) && player->hasWeapon) {
-        Vector2 spawn = { player->pos.x + player->size.x, player->pos.y + player->size.y/2 };
-        FirePlayerProjectile(p, spawn);
-        PlaySound(a->sfxShoot);
-    }
-}
-
-void DrawPhase2(Phase2 *p, Player *player, Assets *a) {
-    // desenhar boss
-    DrawTexture(a->boss, (int)p->rect.x, (int)p->rect.y, WHITE);
-
-    // projéteis do jogador
-    for (int i=0;i<MAX_PROJECTILES;i++){
-        if (!p->playerProjectiles[i].active) continue;
-        DrawRectangle((int)p->playerProjectiles[i].pos.x, (int)p->playerProjectiles[i].pos.y, 10, 6, BLACK);
-    }
-    // projéteis do boss
-    for (int i=0;i<MAX_BOSS_PROJECTILES;i++){
-        if (!p->bossProjectiles[i].active) continue;
-        DrawCircle((int)p->bossProjectiles[i].pos.x, (int)p->bossProjectiles[i].pos.y, 8, RED);
-    }
-
-    // HUD boss hp
-    char buf[64];
-    sprintf(buf, "Boss HP: %d", p->hp);
-    DrawText(buf, 800, 10, 20, MAROON);
+    DrawText(TextFormat("Vidas: %d", ph->player->lives), 20, 20, 28, WHITE);
+    DrawText(TextFormat("Boss HP: %d", ph->boss.hp), 20, 56, 28, WHITE);
 }

@@ -1,95 +1,68 @@
-// src/player.c
 #include "player.h"
-#include <stdio.h>
 
-#define GROUND_Y (420)
-#define GRAVITY 2000.0f
-
-void InitPlayer(Player *p) {
-    p->pos = (Vector2){ 100, GROUND_Y };
-    p->size = (Vector2){ 64, 64 };
-    p->vel = (Vector2){ 0, 0 };
+void Player_Init(Player *p, float x, float y){
+    p->rect = (Rectangle){x, y, 64, 64};
+    p->vel  = (Vector2){0,0};
     p->onGround = true;
     p->hasWeapon = false;
     p->lives = 3;
-    p->bounds = (Rectangle){ p->pos.x, p->pos.y, p->size.x, p->size.y };
+    p->animFrame = 0;
+    p->animTime  = 0.0f;
 }
 
-// Função para obter bounds atual
-Rectangle PlayerGetBounds(Player *p) {
-    return (Rectangle){ p->pos.x, p->pos.y, p->size.x, p->size.y };
-}
+void Player_UpdateRunner(Player *p, float dt, float groundY, Sound sJump){
+    const float gravity = 900.0f;
+    const float jumpVel = -420.0f;
 
-// Atualiza o player na fase 1 (runner).
-// - Corre para frente automaticamente.
-// - Pular: tecla SPACE.
-// - Se colidir com obstáculo é tratado na lógica da fase1 (ela checa colisões).
-void UpdatePlayerLevel1(Player *p, Assets *a, float dt) {
-    const float runSpeed = 220.0f; // velocidade de corrida da fase 1
-
-    // Movimento automático para frente (estilo runner)
-    p->pos.x += runSpeed * dt;
-
-    // Pulo
-    if (IsKeyPressed(KEY_SPACE) && p->onGround) {
-        p->vel.y = -700.0f; // força do pulo
+    if (p->onGround && (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))){
+        p->vel.y = jumpVel;
         p->onGround = false;
-        PlaySound(a->sfxJump); // som de pulo
+        PlaySound(sJump);
+
+        //reseta animação no salto
+        p->animTime = 0.0f;
+        p->animFrame = 0;
+
     }
 
-    // gravidade
-    p->vel.y += GRAVITY * dt;
-    p->pos.y += p->vel.y * dt;
+    // apply gravity
+    p->vel.y += gravity * dt;
+    p->rect.y += p->vel.y * dt;
 
-    // chão
-    if (p->pos.y >= GROUND_Y) {
-        p->pos.y = GROUND_Y;
+    if (p->rect.y + p->rect.height >= groundY){
+        p->rect.y = groundY - p->rect.height;
         p->vel.y = 0;
         p->onGround = true;
     }
 
-    // atualizar bounds
-    p->bounds = PlayerGetBounds(p);
-}
-
-// Desenha o jogador (usa sprite com arma se já coletou)
-void DrawPlayer(Player *p, Assets *a) {
-    if (p->hasWeapon) {
-        DrawTexture(a->playerWeapon, (int)p->pos.x, (int)p->pos.y, WHITE);
-    } else {
-        DrawTexture(a->player, (int)p->pos.x, (int)p->pos.y, WHITE);
+    // animação de corrida
+    if (p->onGround){
+        p->animTime += dt;
+        float frameTime = 1.0f / PLAYER_ANIM_FPS;
+        if (p->animTime >= frameTime){
+            p->animTime -= frameTime;
+            p->animFrame = (p->animFrame + 1) % PLAYER_RUN_FRAMES;
+        }
     }
 }
 
-// Atualiza o player na fase 2 (boss fight).
-// - Movimentação livre horizontal com A/D.
-// - Pulo com SPACE.
-// - Atira com tecla F (ou SPACE duplicado se preferir).
-void UpdatePlayerLevel2(Player *p, Assets *a, float dt) {
-    const float moveSpeed = 260.0f;
-
-    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) p->pos.x -= moveSpeed * dt;
-    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) p->pos.x += moveSpeed * dt;
-
-    // Limites na tela
-    if (p->pos.x < 0) p->pos.x = 0;
-    if (p->pos.x + p->size.x > 1024) p->pos.x = 1024 - p->size.x;
-
-    // Pulo
-    if (IsKeyPressed(KEY_SPACE) && p->onGround) {
-        p->vel.y = -680.0f;
-        p->onGround = false;
-        PlaySound(a->sfxJump);
+void Player_Draw(Player *p, Texture2D texIdle, Texture2D texJump, bool drawWithWeapon){
+    if (!p->onGround){
+        // salto é um frame único separado
+        DrawTexturePro(texJump,
+            (Rectangle){0,0,(float)texJump.width,(float)texJump.height},
+            p->rect, (Vector2){0,0}, 0, WHITE);
+        return;
     }
 
-    // gravidade
-    p->vel.y += GRAVITY * dt;
-    p->pos.y += p->vel.y * dt;
-    if (p->pos.y >= GROUND_Y) {
-        p->pos.y = GROUND_Y;
-        p->vel.y = 0;
-        p->onGround = true;
-    }
+    // recorta apenas o frame atual da spritesheet de idle/corrida
+    int fw = texIdle.width  / PLAYER_COLS;
+    int fh = texIdle.height / PLAYER_ROWS;
 
-    p->bounds = PlayerGetBounds(p);
+    int col = p->animFrame % PLAYER_COLS;
+    int row = p->animFrame / PLAYER_COLS; // 0..(PLAYER_ROWS-1)
+
+    Rectangle src = { (float)(col * fw), (float)(row * fh), (float)fw, (float)fh };
+
+    DrawTexturePro(texIdle, src, p->rect, (Vector2){0,0}, 0, WHITE);
 }

@@ -1,31 +1,40 @@
-// src/assets.h
 #ifndef ASSETS_H
 #define ASSETS_H
-
 #include "raylib.h"
 
 typedef struct {
-    // Texturas
-    Texture2D player;
-    Texture2D playerWeapon;
-    Texture2D obstacle;
-    Texture2D weapon;
-    Texture2D boss;
-    // Sons
-    Sound sfxJump;
-    Sound sfxCollide;
-    Sound sfxShoot;
-    Sound sfxLoseGame;
-    Sound sfxLoseLife;
-    Sound sfxPickup;
-    Sound sfxWin;
-    // Músicas
-    Music musicMenu;
-    Music musicPhase1;
-    Music musicPhase2;
+    // Images / Textures
+    Texture2D texBackground;
+    Texture2D texHome;
+    Texture2D texCredits;
+    Texture2D texWin;
+    Texture2D texLose;
+    Texture2D texPlayer;
+    Texture2D texPlayerWithWeapon;
+    Texture2D texPlayerShooting;
+    Texture2D texJump;
+    Texture2D texObstacle;
+    Texture2D texBoss;
+    Texture2D texBullet;
+    Texture2D texWeapon;
+    Texture2D texPickup;
+
+    // Sounds
+    Sound sJump;
+    Sound sCollide;
+    Sound sShoot;
+    Sound sLoseGame;
+    Sound sLoseLife;
+    Sound sPickupWeapon;
+    Sound sWin;
+
+    // Music
+    Music mMenu;
+    Music mPhase1;
+    Music mPhase2;
 } Assets;
 
-void LoadAssets(Assets *a);
-void UnloadAssets(Assets *a);
+void Assets_Load(Assets *a);
+void Assets_Unload(Assets *a);
 
 #endif // ASSETS_H

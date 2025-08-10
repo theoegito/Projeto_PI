@@ -1,32 +1,29 @@
-// src/phase2.h
 #ifndef PHASE2_H
 #define PHASE2_H
-
 #include "raylib.h"
-#include "assets.h"
+#include <stdbool.h>
 #include "player.h"
+#include "assets.h"
 
-#define MAX_PROJECTILES 32
-#define MAX_BOSS_PROJECTILES 20
+#define MAX_PBULLETS 32
+#define MAX_BOSS_BULLETS 32
 
-typedef struct {
-    Vector2 pos;
-    Vector2 vel;
-    bool active;
-    Rectangle rect;
-} Projectile;
+typedef struct { Rectangle rect; Vector2 vel; bool active; } Bullet;
+
+typedef struct { Rectangle rect; int hp; float shootTimer; } Boss;
 
 typedef struct {
-    Rectangle rect;
-    int hp;
-    float attackTimer;
-    Projectile bossProjectiles[MAX_BOSS_PROJECTILES];
-    Projectile playerProjectiles[MAX_PROJECTILES];
+    Player *player;
+    Boss boss;
+    Bullet pbul[MAX_PBULLETS];
+    Bullet bbul[MAX_BOSS_BULLETS];
+    float groundY;
+    bool win;
+    bool lose;
 } Phase2;
 
-void InitPhase2(Phase2 *p);
-void UpdatePhase2(Phase2 *p, Player *player, Assets *a, float dt);
-void DrawPhase2(Phase2 *p, Player *player, Assets *a);
-void ResetPhase2(Phase2 *p);
+void Phase2_Init(Phase2 *ph, Player *p, float groundY);
+void Phase2_Update(Phase2 *ph, float dt, Assets *a);
+void Phase2_Draw(Phase2 *ph, Assets *a);
 
 #endif // PHASE2_H

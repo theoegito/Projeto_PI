@@ -1,49 +1,59 @@
-// src/assets.c
 #include "assets.h"
-#include <stdio.h>
 
-void LoadAssets(Assets *a) {
-    // Altere os caminhos conforme seus arquivos em /assets/
-    a->player = LoadTexture("assets/images/player.png");
-    a->playerWeapon = LoadTexture("assets/images/player_with_weapon.png");
-    a->obstacle = LoadTexture("assets/images/obstacle.png");
-    a->weapon = LoadTexture("assets/images/weapon.png");
-    a->boss = LoadTexture("assets/images/boss.png");
+void Assets_Load(Assets *a){
+    a->texBackground      = LoadTexture("assets/images/background.png");
+    a->texHome            = LoadTexture("assets/images/home_screen.png");
+    a->texCredits         = LoadTexture("assets/images/credits.png");
+    a->texWin             = LoadTexture("assets/images/win_game.png");
+    a->texLose            = LoadTexture("assets/images/lose_game.png");
+    a->texPlayer          = LoadTexture("assets/images/player.png");
+    a->texPlayerWithWeapon= LoadTexture("assets/images/player_with_weapon.png");
+    a->texPlayerShooting  = LoadTexture("assets/images/player_shooting.png");
+    a->texJump            = LoadTexture("assets/images/jump.png");
+    a->texObstacle        = LoadTexture("assets/images/obstacle.png");
+    a->texBoss            = LoadTexture("assets/images/boss.png");
+    a->texBullet          = LoadTexture("assets/images/bullet.png");
+    a->texWeapon          = LoadTexture("assets/images/weapon.png");
+    a->texPickup          = LoadTexture("assets/images/pickup_weapon.png");
 
-    a->sfxJump = LoadSound("assets/sounds/jump.wav");
-    a->sfxCollide = LoadSound("assets/sounds/collide.wav");
-    a->sfxShoot = LoadSound("assets/sounds/shoot.wav");
-    a->sfxLoseGame = LoadSound("assets/sounds/lose_game.wav");
-    a->sfxLoseLife = LoadSound("assets/sounds/lose_life.wav");
-    a->sfxPickup = LoadSound("assets/sounds/pickup_weapon.wav");
-    a->sfxWin = LoadSound("assets/sounds/win.wav");
+    a->sJump         = LoadSound("assets/sounds/jump.wav");
+    a->sCollide      = LoadSound("assets/sounds/collide.wav");
+    a->sShoot        = LoadSound("assets/sounds/shoot.wav");
+    a->sLoseGame     = LoadSound("assets/sounds/lose_game.wav");
+    a->sLoseLife     = LoadSound("assets/sounds/lose_life.wav");
+    a->sPickupWeapon = LoadSound("assets/sounds/pickup_weapon.wav");
+    a->sWin          = LoadSound("assets/sounds/win.wav");
 
-    a->musicMenu = LoadMusicStream("assets/music/menu.ogg");
-    a->musicPhase1 = LoadMusicStream("assets/music/phase1.ogg");
-    a->musicPhase2 = LoadMusicStream("assets/music/phase2.ogg");
-
-    // set volume default se quiser
-    SetMusicVolume(a->musicMenu, 0.7f);
-    SetMusicVolume(a->musicPhase1, 0.7f);
-    SetMusicVolume(a->musicPhase2, 0.7f);
+    a->mMenu   = LoadMusicStream("assets/music/menu.ogg");
+    a->mPhase1 = LoadMusicStream("assets/music/phase1.ogg");
+    a->mPhase2 = LoadMusicStream("assets/music/phase2.ogg");
 }
 
-void UnloadAssets(Assets *a) {
-    UnloadTexture(a->player);
-    UnloadTexture(a->playerWeapon);
-    UnloadTexture(a->obstacle);
-    UnloadTexture(a->weapon);
-    UnloadTexture(a->boss);
+void Assets_Unload(Assets *a){
+    UnloadTexture(a->texBackground);
+    UnloadTexture(a->texHome);
+    UnloadTexture(a->texCredits);
+    UnloadTexture(a->texWin);
+    UnloadTexture(a->texLose);
+    UnloadTexture(a->texPlayer);
+    UnloadTexture(a->texPlayerWithWeapon);
+    UnloadTexture(a->texPlayerShooting);
+    UnloadTexture(a->texJump);
+    UnloadTexture(a->texObstacle);
+    UnloadTexture(a->texBoss);
+    UnloadTexture(a->texBullet);
+    UnloadTexture(a->texWeapon);
+    UnloadTexture(a->texPickup);
 
-    UnloadSound(a->sfxJump);
-    UnloadSound(a->sfxCollide);
-    UnloadSound(a->sfxShoot);
-    UnloadSound(a->sfxLoseGame);
-    UnloadSound(a->sfxLoseLife);
-    UnloadSound(a->sfxPickup);
-    UnloadSound(a->sfxWin);
+    UnloadSound(a->sJump);
+    UnloadSound(a->sCollide);
+    UnloadSound(a->sShoot);
+    UnloadSound(a->sLoseGame);
+    UnloadSound(a->sLoseLife);
+    UnloadSound(a->sPickupWeapon);
+    UnloadSound(a->sWin);
 
-    UnloadMusicStream(a->musicMenu);
-    UnloadMusicStream(a->musicPhase1);
-    UnloadMusicStream(a->musicPhase2);
+    UnloadMusicStream(a->mMenu);
+    UnloadMusicStream(a->mPhase1);
+    UnloadMusicStream(a->mPhase2);
 }

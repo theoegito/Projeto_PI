@@ -1,186 +1,197 @@
-// src/main.c
 #include "raylib.h"
+#include <stdio.h>
 #include "assets.h"
 #include "player.h"
 #include "phase1.h"
 #include "phase2.h"
 
-#include <stdio.h>
-#include <stdbool.h>
-
 #define SCREEN_W 1024
 #define SCREEN_H 576
 
-typedef enum GameState { STATE_MENU, STATE_CREDITS, STATE_PHASE1, STATE_PICKUP_ANIM, STATE_PHASE2, STATE_GAMEOVER, STATE_VICTORY } GameState;
+typedef enum {
+    SCREEN_MENU,
+    SCREEN_PHASE1,
+    SCREEN_PICKUP_ANIM,
+    SCREEN_PHASE2,
+    SCREEN_CREDITS,
+    SCREEN_WIN,
+    SCREEN_LOSE
+} GameScreen;
 
-int main(void) {
-    InitWindow(SCREEN_W, SCREEN_H, "Runner com Boss - Exemplo");
+static bool ButtonPressed(Rectangle r){
+    Vector2 m = GetMousePosition();
+    bool over = CheckCollisionPointRec(m, r);
+    if (over) DrawRectangleRec(r, Fade(WHITE, 0.15f));
+    DrawRectangleLinesEx(r, 2, RAYWHITE);
+    return over && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+}
+
+int main(void){
+    InitWindow(SCREEN_W, SCREEN_H, "RevoluCIn – Runner & Boss");
     InitAudioDevice();
     SetTargetFPS(60);
 
-    Assets assets;
-    LoadAssets(&assets);
+    Assets A; Assets_Load(&A);
 
-    // tocar música do menu
-    PlayMusicStream(assets.musicMenu);
+    // music
+    PlayMusicStream(A.mMenu);
 
-    Player player;
-    InitPlayer(&player);
+    Player player; Player_Init(&player, 120, SCREEN_H-110);
+    Phase1 p1; Phase1_Init(&p1, &player, SCREEN_H-60);
+    Phase2 p2; // will init later
 
-    Phase1 phase1;
-    InitPhase1(&phase1);
+    GameScreen screen = SCREEN_MENU;
+    float pickupTimer = 0; // controls pickup animation time
 
-    Phase2 phase2;
-    InitPhase2(&phase2);
-
-    GameState state = STATE_MENU;
-
-    // variáveis pra animação da coleta da arma
-    float pickupTimer = 0.0f;
-    const float pickupDuration = 1.2f;
-    Vector2 pickupPos = { 900, 420 };
-
-    // loop principal
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose()){
         float dt = GetFrameTime();
+        UpdateMusicStream(A.mMenu);
+        UpdateMusicStream(A.mPhase1);
+        UpdateMusicStream(A.mPhase2);
 
-        // atualizar musicas (raylib exige UpdateMusicStream por frame)
-        UpdateMusicStream(assets.musicMenu);
-        UpdateMusicStream(assets.musicPhase1);
-        UpdateMusicStream(assets.musicPhase2);
+        // Screen logic
+        switch (screen){
+        case SCREEN_MENU: {
+            if (!IsMusicStreamPlaying(A.mMenu)) PlayMusicStream(A.mMenu);
+            if (IsMusicStreamPlaying(A.mPhase1)) StopMusicStream(A.mPhase1);
+            if (IsMusicStreamPlaying(A.mPhase2)) StopMusicStream(A.mPhase2);
 
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-220, 240, 48})){
+                // start phase 1
+                StopMusicStream(A.mMenu);
+                PlayMusicStream(A.mPhase1);
+                Player_Init(&player, 120, SCREEN_H-110);
+                Phase1_Init(&p1, &player, SCREEN_H-60);
+                screen = SCREEN_PHASE1;
+            }
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-160, 240, 48})){
+                CloseWindow(); return 0;
+            }
+        } break;
+
+        case SCREEN_PHASE1: {
+            Phase1_Update(&p1, dt, &A);
+            if (p1.failed){
+                StopMusicStream(A.mPhase1);
+                screen = SCREEN_LOSE;
+            } else if (p1.finished){
+                StopMusicStream(A.mPhase1);
+                // pickup weapon animation
+                PlaySound(A.sPickupWeapon);
+                pickupTimer = 2.0f; // 2 seconds animation
+                screen = SCREEN_PICKUP_ANIM;
+            }
+        } break;
+
+        case SCREEN_PICKUP_ANIM: {
+            pickupTimer -= dt;
+            if (pickupTimer <= 0){
+                // go to phase 2
+                PlayMusicStream(A.mPhase2);
+                Player_Init(&player, 120, SCREEN_H-110);
+                player.hasWeapon = true;
+                Phase2_Init(&p2, &player, SCREEN_H-60);
+                screen = SCREEN_PHASE2;
+            }
+        } break;
+
+        case SCREEN_PHASE2: {
+            Phase2_Update(&p2, dt, &A);
+            if (p2.lose){
+                StopMusicStream(A.mPhase2);
+                screen = SCREEN_LOSE;
+            } else if (p2.win){
+                StopMusicStream(A.mPhase2);
+                // show credits first
+                screen = SCREEN_CREDITS;
+            }
+        } break;
+
+        case SCREEN_CREDITS: {
+            // wait for click or any key, then win screen
+            if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
+                screen = SCREEN_WIN;
+            }
+        } break;
+
+        case SCREEN_WIN: {
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-140, 240, 48})){
+                StopMusicStream(A.mMenu);
+                PlayMusicStream(A.mMenu);
+                screen = SCREEN_MENU;
+            }
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-80, 240, 48})){
+                CloseWindow(); return 0;
+            }
+        } break;
+
+        case SCREEN_LOSE: {
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-140, 240, 48})){
+                // restart from menu
+                StopMusicStream(A.mMenu);
+                PlayMusicStream(A.mMenu);
+                screen = SCREEN_MENU;
+            }
+            if (ButtonPressed((Rectangle){SCREEN_W/2-120, SCREEN_H-80, 240, 48})){
+                CloseWindow(); return 0;
+            }
+        } break;
+        }
+
+        // DRAW
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
 
-        switch (state) {
-            case STATE_MENU:
-                // desenhar menu
-                DrawText("Jogo Runner - MENU", 320, 120, 32, BLACK);
-                DrawText("Enter para jogar   C para creditos   Esc para sair", 220, 220, 20, DARKGRAY);
-                if (IsKeyPressed(KEY_ENTER)) {
-                    // iniciar fase1
-                    StopMusicStream(assets.musicMenu);
-                    PlayMusicStream(assets.musicPhase1);
-                    state = STATE_PHASE1;
-                    ResetPhase1(&phase1);
-                    InitPlayer(&player);
-                }
-                if (IsKeyPressed(KEY_C)) state = STATE_CREDITS;
-                break;
+        switch (screen){
+        case SCREEN_MENU:
+            DrawTexture(A.texHome,0,0,WHITE);
+            DrawText("Jogar", SCREEN_W/2-40, SCREEN_H-210, 28, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-220, 240, 48, WHITE);
+            DrawText("Sair", SCREEN_W/2-24, SCREEN_H-150, 28, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-160, 240, 48, WHITE);
+            break;
 
-            case STATE_CREDITS:
-                DrawText("CREDITOS", 420, 60, 32, BLACK);
-                DrawText("Equipe: Theo, Roni, Jefferson, Barros, Gabi, Leticia", 150, 140, 20, DARKGRAY);
-                DrawText("Pressione ENTER para voltar", 360, 520, 18, DARKGRAY);
-                if (IsKeyPressed(KEY_ENTER)) {
-                    state = STATE_MENU;
-                }
-                break;
+        case SCREEN_PHASE1:
+            Phase1_Draw(&p1, &A);
+            break;
 
-            case STATE_PHASE1:
-                // atualizar e desenhar fase1
-                UpdatePhase1(&phase1, &player, &assets, dt);
-                DrawPhase1(&phase1, &player, &assets);
+        case SCREEN_PICKUP_ANIM:
+            DrawTexture(A.texBackground,0,0,WHITE);
+            DrawTexturePro(A.texPickup, (Rectangle){0,0,(float)A.texPickup.width,(float)A.texPickup.height},
+                           (Rectangle){SCREEN_W/2-128, SCREEN_H/2-128, 256,256}, (Vector2){0,0}, 0, WHITE);
+            DrawText("Arma coletada!", SCREEN_W/2-110, SCREEN_H/2+150, 24, WHITE);
+            break;
 
-                // se player morreu (colidiu), ir pro gameover
-                if (player.lives <= 0) {
-                    StopMusicStream(assets.musicPhase1);
-                    PlaySound(assets.sfxLoseGame);
-                    state = STATE_GAMEOVER;
-                }
-                // se completou os 60s -> transição e animação de pickup
-                if (phase1.finished) {
-                    // posiciona animação perto do spawn da arma
-                    pickupTimer = 0;
-                    state = STATE_PICKUP_ANIM;
-                    // tocar som de pickup depois da animação
-                }
-                break;
+        case SCREEN_PHASE2:
+            Phase2_Draw(&p2, &A);
+            break;
 
-            case STATE_PICKUP_ANIM:
-                // animação simples: reduz alpha / ou movimenta o sprite da arma até o player
-                pickupTimer += dt;
-                // desenha background da fase (pode reaproveitar)
-                DrawPhase1(&phase1, &player, &assets);
+        case SCREEN_CREDITS:
+            DrawTexture(A.texCredits,0,0,WHITE);
+            DrawText("Pressione ENTER ou clique para continuar", SCREEN_W/2-260, SCREEN_H-40, 18, WHITE);
+            break;
 
-                // calcula posição interpolada entre arma e player
-                float t = pickupTimer / pickupDuration;
-                if (t > 1.0f) t = 1.0f;
-                Vector2 weaponDrawPos;
-                weaponDrawPos.x = pickupPos.x + (player.pos.x - pickupPos.x) * t;
-                weaponDrawPos.y = pickupPos.y + (player.pos.y - pickupPos.y) * t;
+        case SCREEN_WIN:
+            DrawTexture(A.texWin,0,0,WHITE);
+            DrawText("Jogar novamente", SCREEN_W/2-110, SCREEN_H-130, 24, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-140, 240, 48, WHITE);
+            DrawText("Sair", SCREEN_W/2-24, SCREEN_H-70, 24, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-80, 240, 48, WHITE);
+            break;
 
-                // desenha arma movendo
-                DrawTexture(assets.weapon, (int)weaponDrawPos.x, (int)weaponDrawPos.y, WHITE);
-
-                if (pickupTimer >= pickupDuration) {
-                    // animação acabou -> jogador recebe arma
-                    player.hasWeapon = true;
-                    PlaySound(assets.sfxPickup);
-                    // trocar música para phase2 e iniciar fase2
-                    StopMusicStream(assets.musicPhase1);
-                    PlayMusicStream(assets.musicPhase2);
-                    state = STATE_PHASE2;
-                    // reset phase2 e player pos
-                    ResetPhase2(&phase2);
-                    InitPlayer(&player);
-                    player.hasWeapon = true; // manter arma
-                }
-                break;
-
-            case STATE_PHASE2:
-                // atualizar jogador com lógica da fase2
-                UpdatePlayerLevel2(&player, &assets, dt);
-                UpdatePhase2(&phase2, &player, &assets, dt);
-
-                // desenhar fase2
-                // chão simples
-                DrawRectangle(0, 480, 1024, 96, LIGHTGRAY);
-                DrawPlayer(&player, &assets);
-                DrawPhase2(&phase2, &player, &assets);
-
-                // verificar vitória ou derrota
-                if (player.lives <= 0) {
-                    StopMusicStream(assets.musicPhase2);
-                    PlaySound(assets.sfxLoseGame);
-                    state = STATE_GAMEOVER;
-                }
-                if (phase2.hp <= 0) {
-                    StopMusicStream(assets.musicPhase2);
-                    PlaySound(assets.sfxWin);
-                    state = STATE_VICTORY;
-                }
-                break;
-
-            case STATE_GAMEOVER:
-                DrawText("GAME OVER", 360, 200, 48, RED);
-                DrawText("ENTER para voltar ao menu", 340, 280, 20, DARKGRAY);
-                if (IsKeyPressed(KEY_ENTER)) {
-                    state = STATE_MENU;
-                    PlayMusicStream(assets.musicMenu);
-                }
-                break;
-
-            case STATE_VICTORY:
-                DrawText("VOCE VENCEU!", 340, 200, 48, GREEN);
-                DrawText("ENTER para voltar ao menu", 340, 280, 20, DARKGRAY);
-                if (IsKeyPressed(KEY_ENTER)) {
-                    state = STATE_MENU;
-                    PlayMusicStream(assets.musicMenu);
-                }
-                break;
+        case SCREEN_LOSE:
+            DrawTexture(A.texLose,0,0,WHITE);
+            DrawText("Jogar novamente", SCREEN_W/2-110, SCREEN_H-130, 24, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-140, 240, 48, WHITE);
+            DrawText("Sair", SCREEN_W/2-24, SCREEN_H-70, 24, WHITE);
+            DrawRectangleLines(SCREEN_W/2-120, SCREEN_H-80, 240, 48, WHITE);
+            break;
         }
 
         EndDrawing();
-
-        // importante: chamar UpdateMusicStream enquanto a música estiver tocando
-        if (IsMusicStreamPlaying(assets.musicMenu)) UpdateMusicStream(assets.musicMenu);
-        if (IsMusicStreamPlaying(assets.musicPhase1)) UpdateMusicStream(assets.musicPhase1);
-        if (IsMusicStreamPlaying(assets.musicPhase2)) UpdateMusicStream(assets.musicPhase2);
     }
 
-    // unload
-    UnloadAssets(&assets);
+    Assets_Unload(&A);
     CloseAudioDevice();
     CloseWindow();
     return 0;
