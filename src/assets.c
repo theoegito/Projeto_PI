@@ -1,5 +1,6 @@
 #include "assets.h"
 
+// adiciona os imagens, musicas e sons
 void Assets_Load(Assets *a){
     a->texBackground      = LoadTexture("assets/images/background.png");
     a->texHome            = LoadTexture("assets/images/home_screen.png");
@@ -9,7 +10,7 @@ void Assets_Load(Assets *a){
     a->texLose            = LoadTexture("assets/images/lose_game.png");
     
 
-    // Deixe os traços do pixel art sem blur ao escalar
+    // filtro de textura para manter o pixel art
     SetTextureFilter(a->texBackground, TEXTURE_FILTER_POINT);
     SetTextureFilter(a->texHome,       TEXTURE_FILTER_POINT);
     SetTextureFilter(a->texCredits,    TEXTURE_FILTER_POINT);
@@ -44,6 +45,8 @@ void Assets_Load(Assets *a){
     a->mPhase1 = LoadMusicStream("assets/music/phase1.ogg");
     a->mPhase2 = LoadMusicStream("assets/music/phase2.ogg");
 }
+
+// libera os assets carregados no memoria
 
 void Assets_Unload(Assets *a){
     UnloadTexture(a->texBackground);

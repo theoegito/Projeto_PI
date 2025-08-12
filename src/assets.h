@@ -3,7 +3,7 @@
 #include "raylib.h"
 
 typedef struct {
-    // Images / Textures
+    // imagens
     Texture2D texBackground;
     Texture2D texHome;
     Texture2D texCredits;
@@ -22,7 +22,7 @@ typedef struct {
     Texture2D texExplosion;
     Texture2D texEnredo;
 
-    // Sounds
+    // sons 
     Sound sJump;
     Sound sCollide;
     Sound sShoot;
@@ -32,7 +32,7 @@ typedef struct {
     Sound sWin;
     Sound sExplosion; 
 
-    // Music
+    // musicas
     Music mMenu;
     Music mPhase1;
     Music mPhase2;

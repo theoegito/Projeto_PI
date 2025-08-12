@@ -6,30 +6,33 @@
 #include "phase1.h"
 #include "phase2.h"
 
+// tamanho da tela 
 #define SCREEN_W 1024
 #define SCREEN_H 576
 
-// desenha uma textura preenchendo a tela lógica 1024x576
+// desenha textura q preenchendo a tela 
 static void DrawFull(Texture2D tex){
     Rectangle src = (Rectangle){0, 0, (float)tex.width, (float)tex.height};
     Rectangle dst = (Rectangle){0, 0, SCREEN_W, SCREEN_H};
     DrawTexturePro(tex, src, dst, (Vector2){0,0}, 0.0f, WHITE);
 }
 
-// ---------------- Hotzones alinhadas com a arte (1024x576) ----------------
-static Rectangle R_MENU_PLAY = { 536, 285, 243, 88 };
-static Rectangle R_MENU_EXIT = { 534, 397, 254, 88 };
-// GANHOU
-static Rectangle R_PLAYAGAIN_WIN = {209, 384, 518, 70};
-static Rectangle R_EXIT_WIN      = { 360, 471, 218, 67 };
-// PERDEU
-static Rectangle R_PLAYAGAIN_LOSE = {224, 374, 487, 81};
-static Rectangle R_EXIT_LOSE      = { 347, 472, 243, 72 };
-// Debug (F1 mostra/oculta os retângulos)
-static bool gShowHotzones = false;
-// --------------------------------------------------------------------------
+// botões:
+// MENU
+static Rectangle R_MENU_PLAY = { 536, 285, 243, 88 }; // jogar
+static Rectangle R_MENU_EXIT = { 534, 397, 254, 88 }; // sair
 
-// ---------- Mouse virtual (mapa clique janela -> 1024x576) ----------
+// GANHOU
+static Rectangle R_PLAYAGAIN_WIN = {209, 384, 518, 70}; // jogar dnv
+static Rectangle R_EXIT_WIN      = { 360, 471, 218, 67 }; // sair
+// PERDEU
+static Rectangle R_PLAYAGAIN_LOSE = {224, 374, 487, 81}; // jogar dnv 
+static Rectangle R_EXIT_LOSE      = { 347, 472, 243, 72 }; // sair
+
+
+static bool gShowHotzones = false; // conturno dos botões f1 
+
+// mouse virtual
 static Vector2 GetMouseVirtual(void){
     int sw = GetScreenWidth();
     int sh = GetScreenHeight();
@@ -40,7 +43,7 @@ static Vector2 GetMouseVirtual(void){
 
     Vector2 m = GetMousePosition();
 
-    // fora da área útil (letterbox)? devolve fora do virtual
+    // caso fora da area util 
     if (m.x < offX || m.x > offX + SCREEN_W*scale ||
         m.y < offY || m.y > offY + SCREEN_H*scale)
         return (Vector2){ -1e9f, -1e9f };
@@ -54,7 +57,7 @@ static void DebugDrawMouseVirtual(void){
     if (mv.x > -1e8f) DrawCircleV(mv, 4.0f, YELLOW);
 }
 
-// clique com folga (padding) — mais fácil de acertar
+// clique com folga 
 static bool ButtonPressedVirtualPad(Rectangle r, float pad){
     Rectangle rp = (Rectangle){ r.x - pad, r.y - pad, r.width + 2*pad, r.height + 2*pad };
     Vector2 mv = GetMouseVirtual();
@@ -64,12 +67,12 @@ static bool ButtonPressedVirtualPad(Rectangle r, float pad){
     }
     return over && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 }
-// --------------------------------------------------------------------
 
-// --------- Calibração interativa (F2/F3) ---------
+
+// calibragem
 typedef enum { CAL_NONE, CAL_PLAY_TL, CAL_PLAY_BR, CAL_EXIT_TL, CAL_EXIT_BR } CalibState;
 static CalibState gCal = CAL_NONE;
-static Vector2 gCalTL; // top-left
+static Vector2 gCalTL; 
 
 static void StartCalibratePlay(void){ gCal = CAL_PLAY_TL;  TraceLog(LOG_INFO, "Calibrar PLAY: clique TOP-LEFT"); }
 static void StartCalibrateExit(void){ gCal = CAL_EXIT_TL;  TraceLog(LOG_INFO, "Calibrar EXIT: clique TOP-LEFT"); }
@@ -94,9 +97,8 @@ static void HandleCalibration(void){
         }
     }
 }
-// -------------------------------------------------
 
-typedef enum {
+typedef enum { // telas do jogo 
     SCREEN_MENU,
     SCREEN_ENREDO,  
     SCREEN_PHASE1,
@@ -109,43 +111,49 @@ typedef enum {
 
 int main(void){
     InitWindow(SCREEN_W, SCREEN_H, "RevoluCIn – Runner & Boss");
-    InitAudioDevice();
-    SetTargetFPS(60);
+    InitAudioDevice(); 
+    SetTargetFPS(60); // trava fpd em 60 para deixar mais estavel 
 
-    Assets A; Assets_Load(&A);
+    Assets A; Assets_Load(&A); // carrega os assets
 
-    // music
+    // musicas
     PlayMusicStream(A.mMenu);
 
+    // inica player e fase 1 
     Player player; Player_Init(&player, 120, SCREEN_H-110);
     Phase1 p1; Phase1_Init(&p1, &player, SCREEN_H-60);
-    Phase2 p2; // will init later
+    Phase2 p2; // se passar fase 1
 
-    GameScreen screen = SCREEN_MENU;
-    float pickupTimer = 0; // controls pickup animation time
+    GameScreen screen = SCREEN_MENU; // primeira tela  
+    float pickupTimer = 0; // tempo cutscene arma
 
-    while (!WindowShouldClose()){
-        float dt = GetFrameTime();
+    while (!WindowShouldClose()){ // enquanto a janela aberta
+
+        float dt = GetFrameTime(); // delta do timer do frame
         UpdateMusicStream(A.mMenu);
         UpdateMusicStream(A.mPhase1);
         UpdateMusicStream(A.mPhase2);
 
         if (IsKeyPressed(KEY_F1)) gShowHotzones = !gShowHotzones;
-        if (IsKeyPressed(KEY_F2)) StartCalibratePlay(); // calibrar JOGAR
-        if (IsKeyPressed(KEY_F3)) StartCalibrateExit(); // calibrar SAIR
+        if (IsKeyPressed(KEY_F2)) StartCalibratePlay(); // calibrar botão jogar 
+        if (IsKeyPressed(KEY_F3)) StartCalibrateExit(); // calibrar botão sair 
         HandleCalibration();
 
-        // Screen logic
-        switch (screen){
+
+        switch (screen){ // tela atual
+
         case SCREEN_MENU: {
+
             if (!IsMusicStreamPlaying(A.mMenu)) PlayMusicStream(A.mMenu);
             if (IsMusicStreamPlaying(A.mPhase1)) StopMusicStream(A.mPhase1);
             if (IsMusicStreamPlaying(A.mPhase2)) StopMusicStream(A.mPhase2);
 
             if (ButtonPressedVirtualPad(R_MENU_PLAY, 12.0f)){
-                // vai para a tela de explicação
+
+                // tela com explicação enredo 
                 screen = SCREEN_ENREDO;
-                // garante player limpo para a fase
+
+                // reseta player e fase 1  
                 Player_Init(&player, 120, SCREEN_H-110);
                 Phase1_Init(&p1, &player, SCREEN_H-60);
             }
@@ -155,35 +163,42 @@ int main(void){
         } break;
 
         case SCREEN_ENREDO: {
-            // Avança para a Fase 1 com Enter ou clique
+
+            // vai para fase 1 com enter ou clique
             if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-                // troca a trilha: sai do menu, entra a da fase 1
+
+                // muda musica 
                 if (IsMusicStreamPlaying(A.mMenu)) StopMusicStream(A.mMenu);
                 PlayMusicStream(A.mPhase1);
 
-                // (Player/Phase1 já foram inicializados ao sair do menu)
                 screen = SCREEN_PHASE1;
             }
         } break;
 
         case SCREEN_PHASE1: {
-            Phase1_Update(&p1, dt, &A);
-            if (p1.failed){
+
+            Phase1_Update(&p1, dt, &A); // atualiza a fase 1 
+
+            if (p1.failed){ // perdeu 
                 StopMusicStream(A.mPhase1);
                 screen = SCREEN_LOSE;
-            } else if (p1.finished){
+
+            } else if (p1.finished){ // passou para fase 2 
                 StopMusicStream(A.mPhase1);
-                // pickup weapon animation
+
+                // cutscene arma
                 PlaySound(A.sPickupWeapon);
-                pickupTimer = 2.0f; // 2 seconds animation
+                pickupTimer = 2.0f; 
                 screen = SCREEN_PICKUP_ANIM;
             }
         } break;
 
         case SCREEN_PICKUP_ANIM: {
-            pickupTimer -= dt;
+
+            pickupTimer -= dt; // contagem regressiva da cena
+
             if (pickupTimer <= 0){
-                // go to phase 2
+                // vai para fase 2
                 PlayMusicStream(A.mPhase2);
                 Player_Init(&player, 120, SCREEN_H-110);
                 player.hasWeapon = true;
@@ -193,25 +208,26 @@ int main(void){
         } break;
 
         case SCREEN_PHASE2: {
-            Phase2_Update(&p2, dt, &A);
-            if (p2.lose){
+
+            Phase2_Update(&p2, dt, &A); // atualiza fase 2 
+
+            if (p2.lose){ // perdeu 
                 StopMusicStream(A.mPhase2);
                 screen = SCREEN_LOSE;
-            } else if (p2.win){
+            } else if (p2.win){ // ganhou 
                 StopMusicStream(A.mPhase2);
-                // show credits first
-                screen = SCREEN_CREDITS;
+                screen = SCREEN_CREDITS; // creditos ao finalizar o jogo 
             }
         } break;
 
         case SCREEN_CREDITS: {
-            // wait for click or any key, then win screen
+            // enter ou clica para sair dos credidos 
             if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
                 screen = SCREEN_WIN;
             }
         } break;
 
-        case SCREEN_WIN: {
+        case SCREEN_WIN: { // imagem de vitoria + jogar dnv ou sair 
             if (ButtonPressedVirtualPad(R_PLAYAGAIN_WIN, 12.0f)){
                 StopMusicStream(A.mMenu);
                 PlayMusicStream(A.mMenu);
@@ -222,9 +238,9 @@ int main(void){
             }
         } break;
 
-        case SCREEN_LOSE: {
+        case SCREEN_LOSE: { // imagem de vitoria + jogar dnv ou sair 
             if (ButtonPressedVirtualPad(R_PLAYAGAIN_LOSE, 12.0f)){
-                // restart from menu
+                
                 StopMusicStream(A.mMenu);
                 PlayMusicStream(A.mMenu);
                 screen = SCREEN_MENU;
@@ -235,7 +251,7 @@ int main(void){
         } break;
         }
 
-        // DRAW
+        // desenho das telas
         BeginDrawing();
         ClearBackground(BLACK);
 
@@ -249,7 +265,7 @@ int main(void){
             break;
 
         case SCREEN_ENREDO:
-            DrawFull(A.texEnredo);  // imagem 1024x576 com o texto e o "Pressione enter ou clique..."
+            DrawFull(A.texEnredo); 
             break;
 
         case SCREEN_PHASE1:
@@ -257,14 +273,14 @@ int main(void){
             break;
 
         case SCREEN_PICKUP_ANIM: {
-            // ====== COVER com "respiro azul" no topo ======
+
+            // desenha cutscene 
             float sw = (float)SCREEN_W, sh = (float)SCREEN_H;
             float tw = (float)A.texPickup.width, th = (float)A.texPickup.height;
 
             float screenAR = sw / sh;
             float texAR    = tw / th;
 
-            // Cover: calcula o recorte proporcional
             Rectangle srcCover;
             if (texAR > screenAR){
                 float newW = th * screenAR;
@@ -276,16 +292,16 @@ int main(void){
                 srcCover = (Rectangle){ 0, y, tw, newH };
             }
 
-            // margem desejada no topo (em pixels da tela)
+            // margem 
             float marginTop = 44.0f;
 
-            // 1) pinta a faixa azul usando um pedacinho do topo da própria textura
-            float sampleH = fminf(40.0f, th * 0.08f); // tira ~8% do topo (puro azul)
+            // 1
+            float sampleH = fminf(40.0f, th * 0.08f); 
             Rectangle srcBlue = (Rectangle){ 0, 0, tw, sampleH };
             Rectangle dstBlue = (Rectangle){ 0, 0, sw, marginTop };
             DrawTexturePro(A.texPickup, srcBlue, dstBlue, (Vector2){0,0}, 0, WHITE);
 
-            // 2) desenha a arte principal em cover, deslocada para baixo
+            // 2
             Rectangle dstCover = (Rectangle){ 0, marginTop, sw, sh };
             DrawTexturePro(A.texPickup, srcCover, dstCover, (Vector2){0,0}, 0, WHITE);
         } break;
@@ -315,7 +331,7 @@ int main(void){
             break;
         }
 
-        // ponto do mouse virtual pra ajudar a alinhar
+        // ponto - mouse virtual
         DebugDrawMouseVirtual();
 
         EndDrawing();
@@ -323,6 +339,6 @@ int main(void){
 
     Assets_Unload(&A);
     CloseAudioDevice();
-    CloseWindow();
+    CloseWindow(); // fecha a janela 
     return 0;
 }
