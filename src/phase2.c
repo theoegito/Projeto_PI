@@ -56,7 +56,7 @@ void Phase2_Init(Phase2 *ph, Player *p, float groundY){
 
     // mantém tamanho e posição atuais do boss na tela
     ph->boss.rect = (Rectangle){ 1024 - 200, groundY - 120, 120, 120 };
-    ph->boss.hp = 100;
+    ph->boss.hp = 10;
     ph->boss.shootTimer = 0;
 
     for (int i = 0; i < MAX_PBULLETS; i++)       ph->pbul[i].active = false;
