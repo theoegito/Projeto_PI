@@ -8,13 +8,13 @@ Os computadores se revoltaram! A Inteligência Artificial maligna tomou conta do
 
 
 ### FASE 1 
-Na fase inicial trata-se de um 'runner', aonde você terá que saltar os obstáculos (computadores inimigos), ao concluir a fase você ganhará uma arma necessária para derrotar o chefão na fase 2.
+Na fase inicial trata-se de um 'runner', aonde você terá que saltar (clique 'SPACE' ou 'UP' ou 'W' para saltar) os obstáculos (computadores inimigos), ao concluir a fase você ganhará uma arma necessária para derrotar o chefão na fase 2.
 
 <img width="1019" height="577" alt="Screenshot from 2025-08-13 11-00-42" src="https://github.com/user-attachments/assets/174f4a4c-cbca-41ef-bb91-05d7a91058de" />
 <img width="1019" height="577" alt="Screenshot from 2025-08-13 11-01-49" src="https://github.com/user-attachments/assets/f77b9341-c72b-4380-8645-67661b1463e7" />
 
 ### FASE 2
-Nessa fase, você terá 3 vidas e usará a arma para derrotar o chefão equanto desvia dos seus ataques.
+Nessa fase, você terá 3 vidas e usará a arma (clique 'F' ou botão esquerdo do mouse para atirar) para derrotar o chefão equanto desvia dos seus ataques.
 
 <img width="1019" height="577" alt="Screenshot from 2025-08-13 11-01-59" src="https://github.com/user-attachments/assets/0b187c7d-136b-4382-ba45-9b24aec056e0" />
 
