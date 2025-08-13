@@ -274,7 +274,7 @@ int main(void){
 
         case SCREEN_PICKUP_ANIM: {
 
-            // desenha cutscene 
+            // redimensiona a imagem da arma pra ficar proporcional na tela
             float sw = (float)SCREEN_W, sh = (float)SCREEN_H;
             float tw = (float)A.texPickup.width, th = (float)A.texPickup.height;
 
