@@ -145,22 +145,22 @@ void Phase2_Update(Phase2 *ph, float dt, Assets *a){
 
         if (ph->pbul[i].rect.x > VIRTUAL_W) ph->pbul[i].active = false; // caso saia da tela desativa
         if (CheckCollisionRecs(ph->pbul[i].rect, ph->boss.rect)) { // colisão com o boss 
-    ph->pbul[i].active = false;
-    ph->boss.hp--;
+            ph->pbul[i].active = false;
+            ph->boss.hp--;
 
-    if (ph->boss.hp <= 0 && !ph->exploding){
-        // inicia explosão no centro do boss
-        ph->exploding = true;
-        ph->expFrame  = 0;
-        ph->expTime   = 0.0f;
-        ph->expCenter = (Vector2){
-            ph->boss.rect.x + ph->boss.rect.width  * 0.5f,
-            ph->boss.rect.y + ph->boss.rect.height * 0.5f
-        };
+            if (ph->boss.hp <= 0 && !ph->exploding){
+                // inicia explosão no centro do boss
+                ph->exploding = true;
+                ph->expFrame  = 0;
+                ph->expTime   = 0.0f;
+                ph->expCenter = (Vector2){
+                    ph->boss.rect.x + ph->boss.rect.width  * 0.5f,
+                    ph->boss.rect.y + ph->boss.rect.height * 0.5f
+                };
 
-        PlaySound(a->sExplosion);
-    }
-}
+                PlaySound(a->sExplosion);
+            }
+        }
     }
 
     // tiro do boss
@@ -210,14 +210,14 @@ void Phase2_Draw(Phase2 *ph, Assets *a){ //  desenha fase 2
     Player_Draw(ph->player, a->texPlayerWithWeapon, a->texJump, true);
 
     // balas player
-for (int i = 0; i < MAX_PBULLETS; i++) if (ph->pbul[i].active)
-    DrawTexturePro(a->texBullet,
+    for (int i = 0; i < MAX_PBULLETS; i++) if (ph->pbul[i].active)
+        DrawTexturePro(a->texBullet,
         (Rectangle){0,0,(float)a->texBullet.width,(float)a->texBullet.height},
         ph->pbul[i].rect, (Vector2){0,0}, 0, WHITE);
 
-// balas boss
-for (int i = 0; i < MAX_BOSS_BULLETS; i++) if (ph->bbul[i].active)
-    DrawTexturePro(a->texBossBullet,
+    // balas boss
+    for (int i = 0; i < MAX_BOSS_BULLETS; i++) if (ph->bbul[i].active)
+        DrawTexturePro(a->texBossBullet,
         (Rectangle){0,0,(float)a->texBossBullet.width,(float)a->texBossBullet.height},
         ph->bbul[i].rect, (Vector2){0,0}, 0, WHITE);
 
